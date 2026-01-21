@@ -1,0 +1,13 @@
+// Initialize Monaco Editor FIRST (must be before any React imports that use it)
+import './lib/monaco-setup';
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './styles/globals.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

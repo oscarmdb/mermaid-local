@@ -1,0 +1,73 @@
+# Mermaid Editor - Secure Offline Deployment
+# 
+# SECURITY FEATURES:
+# - internal: true network blocks all outbound internet access
+# - read_only: true prevents filesystem modifications
+# - no_new_privileges: true prevents privilege escalation
+# - All capabilities dropped except minimal required
+#
+# Usage:
+#   docker-compose up -d
+#   Open http://localhost:3000
+
+services:
+  mermaid-editor:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: mermaid-editor
+    
+    # SECURITY: Network isolation - no internet access
+    networks:
+      - isolated
+    
+    ports:
+      - "3000:80"
+    
+    # SECURITY: Read-only filesystem
+    read_only: true
+    
+    # SECURITY: Temp directories for nginx (required for operation)
+    tmpfs:
+      - /var/cache/nginx:mode=1777,size=10m
+      - /var/run:mode=1777,size=1m
+      - /tmp:mode=1777,size=10m
+    
+    # SECURITY: Drop all capabilities, add only what's needed
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE  # Required to bind to port 80
+      - CHOWN            # Required for nginx user
+      - SETGID           # Required for nginx worker processes
+      - SETUID           # Required for nginx worker processes
+    
+    # SECURITY: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Labels for documentation
+    labels:
+      - "app.name=mermaid-editor"
+      - "app.description=Offline Mermaid diagram editor"
+      - "app.security=isolated-network,read-only,no-privileges"
+
+networks:
+  isolated:
+    # CRITICAL: internal: true blocks ALL outbound internet access
+    # The container can only communicate within this network
+    internal: true
+    driver: bridge

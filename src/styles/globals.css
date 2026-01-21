@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Custom Properties for theming */
+:root {
+  /* Light theme */
+  --background: 0 0% 100%;
+  --background-secondary: 220 14% 96%;
+  --foreground: 224 71% 4%;
+  --foreground-muted: 220 9% 46%;
+  --primary: 239 84% 67%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 220 14% 96%;
+  --accent-foreground: 224 71% 4%;
+  --border: 220 13% 91%;
+  --ring: 239 84% 67%;
+}
+
+.dark {
+  /* Dark theme */
+  --background: 224 71% 4%;
+  --background-secondary: 220 17% 10%;
+  --foreground: 213 31% 91%;
+  --foreground-muted: 215 16% 57%;
+  --primary: 239 84% 67%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 220 17% 17%;
+  --accent-foreground: 213 31% 91%;
+  --border: 216 34% 17%;
+  --ring: 239 84% 67%;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background-secondary));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--foreground-muted) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground-muted) / 0.5);
+}
+
+/* Split pane styling */
+.gutter {
+  background-color: hsl(var(--border));
+  transition: background-color 0.15s ease;
+}
+
+.gutter:hover {
+  background-color: hsl(var(--primary) / 0.5);
+}
+
+.gutter.gutter-horizontal {
+  cursor: col-resize;
+}
+
+/* Monaco editor overrides for better integration */
+.monaco-editor,
+.monaco-editor-background,
+.monaco-editor .margin {
+  background-color: hsl(var(--background-secondary)) !important;
+}
+
+.dark .monaco-editor,
+.dark .monaco-editor-background,
+.dark .monaco-editor .margin {
+  background-color: hsl(220 17% 8%) !important;
+}
+
+/* Mermaid diagram container */
+.mermaid-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 2rem;
+}
+
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Diagram zoom/pan container */
+.diagram-viewport {
+  overflow: auto;
+  height: 100%;
+  width: 100%;
+}
+
+/* Grab cursor for panning */
+.diagram-viewport.cursor-grab {
+  cursor: grab;
+}
+
+.diagram-viewport.cursor-grabbing {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* Prevent text selection during pan */
+.diagram-viewport.cursor-grabbing * {
+  user-select: none;
+}
+
+/* Dark mode Mermaid text contrast fixes */
+.dark .mermaid-container svg text,
+.dark .mermaid-container svg .nodeLabel,
+.dark .mermaid-container svg .label,
+.dark .mermaid-container svg .edgeLabel,
+.dark .mermaid-container svg tspan {
+  fill: #1e1e1e !important;
+}
+
+/* But keep light text on dark backgrounds (like notes, clusters) */
+.dark .mermaid-container svg .cluster text,
+.dark .mermaid-container svg .cluster tspan {
+  fill: #e2e8f0 !important;
+}
+
+/* Architecture diagram specific fixes for dark mode */
+.dark .mermaid-container svg [class*="architecture"] text,
+.dark .mermaid-container svg [class*="iconText"],
+.dark .mermaid-container svg .node-label text {
+  fill: #1e1e1e !important;
+}
+
+/* Button styles */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  @apply disabled:pointer-events-none disabled:opacity-50;
+}
+
+.btn-primary {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98];
+}
+
+.btn-secondary {
+  @apply bg-accent text-accent-foreground hover:bg-accent/80 border border-border;
+}
+
+.btn-ghost {
+  @apply hover:bg-accent hover:text-accent-foreground;
+}
+
+.btn-icon {
+  @apply h-9 w-9 p-0;
+}
+
+/* Tooltip */
+.tooltip {
+  @apply absolute z-50 px-2 py-1 text-xs rounded bg-foreground text-background;
+  @apply animate-fade-in pointer-events-none;
+}
+
+/* Dialog/Modal */
+.dialog-overlay {
+  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-sm;
+  @apply animate-fade-in;
+}
+
+.dialog-content {
+  @apply fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2;
+  @apply w-full max-w-lg rounded-xl bg-background p-6 shadow-2xl border border-border;
+  @apply animate-slide-up;
+}
+
+/* Error state */
+.error-message {
+  @apply bg-red-500/10 border border-red-500/30 text-red-500 rounded-lg p-4;
+  @apply font-mono text-sm whitespace-pre-wrap;
+}
+
+/* Success state */
+.success-toast {
+  @apply fixed bottom-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg;
+  @apply animate-slide-up;
+}
+
+/* Templates sidebar */
+.template-item {
+  @apply px-3 py-2 rounded-lg cursor-pointer transition-colors;
+  @apply hover:bg-accent text-foreground-muted hover:text-foreground;
+}
+
+.template-item.active {
+  @apply bg-primary/10 text-primary;
+}
+
+/* Keyboard shortcut badge */
+.kbd {
+  @apply inline-flex items-center justify-center px-1.5 py-0.5 text-xs rounded;
+  @apply bg-background-secondary border border-border font-mono;
+}
