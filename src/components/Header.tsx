@@ -1,11 +1,10 @@
-import { Sun, Moon, Download, FileCode, Menu, X, Save, History, Check, Loader2, Circle, Settings, Sparkles } from 'lucide-react';
+import { Sun, Moon, FileCode, Menu, X, Save, History, Check, Loader2, Circle, Settings, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SaveStatus } from '@/hooks/useAutoSave';
 
 interface HeaderProps {
   isDark: boolean;
   onToggleDarkMode: () => void;
-  onExport: () => void;
   onShowTemplates: () => void;
   showTemplates: boolean;
   saveStatus?: SaveStatus;
@@ -21,7 +20,6 @@ interface HeaderProps {
 export function Header({
   isDark,
   onToggleDarkMode,
-  onExport,
   onShowTemplates,
   showTemplates,
   saveStatus = 'idle',
@@ -62,7 +60,18 @@ export function Header({
       <div className="hidden md:flex items-center gap-3">
         {activeDiagramName && (
           <>
-            <span className="text-sm font-medium truncate max-w-[200px]">{activeDiagramName}</span>
+            {isLLMEnabled && onGenerateMetadata ? (
+              <button
+                onClick={onGenerateMetadata}
+                className="group flex items-center gap-1.5 hover:text-purple-500 transition-colors"
+                title="Click to generate title & description with AI"
+              >
+                <span className="text-sm font-medium truncate max-w-[400px]">{activeDiagramName}</span>
+                <Sparkles size={14} className="text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            ) : (
+              <span className="text-sm font-medium truncate max-w-[400px]">{activeDiagramName}</span>
+            )}
             <div className="w-px h-4 bg-border" />
           </>
         )}
@@ -101,14 +110,6 @@ export function Header({
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        {/* Security badge */}
-        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse-subtle" />
-          <span className="text-xs font-medium text-green-600 dark:text-green-400">
-            Offline Mode
-          </span>
-        </div>
-
         {/* Manual save button (when diagram is active) */}
         {activeDiagramName && onManualSave && (
           <button
@@ -130,27 +131,6 @@ export function Header({
             <History size={18} />
           </button>
         )}
-
-        {/* AI Generate Metadata button */}
-        {activeDiagramName && isLLMEnabled && onGenerateMetadata && (
-          <button
-            onClick={onGenerateMetadata}
-            className="btn btn-ghost btn-icon text-purple-500 hover:bg-purple-500/10"
-            title="Generate title & description with AI"
-          >
-            <Sparkles size={18} />
-          </button>
-        )}
-
-        {/* Export button */}
-        <button
-          onClick={onExport}
-          className="btn btn-primary"
-          title="Export diagram (Ctrl+E)"
-        >
-          <Download size={16} />
-          <span className="hidden sm:inline">Export</span>
-        </button>
 
         {/* Settings button */}
         <button

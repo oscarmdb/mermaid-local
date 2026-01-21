@@ -11,6 +11,7 @@ import { VersionHistory } from '@/components/VersionHistory';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { GenerateMetadataDialog } from '@/components/GenerateMetadataDialog';
 import { ChatTab } from '@/components/ChatTab';
+import { PresenterMode } from '@/components/PresenterMode';
 import { useDarkMode, useLocalStorage, useKeyboardShortcut } from '@/hooks/useLocalStorage';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useDiagram, useCurrentVersion, updateDiagram } from '@/hooks/useDatabase';
@@ -41,6 +42,7 @@ function App() {
   const [code, setCode] = useLocalStorage('mermaid-code', defaultDiagram);
   const [currentSvg, setCurrentSvg] = useState('');
   const [showExport, setShowExport] = useState(false);
+  const [showPresenterMode, setShowPresenterMode] = useState(false);
   const [currentTemplateId, setCurrentTemplateId] = useState<string | undefined>();
   
   // Load diagram data
@@ -136,7 +138,6 @@ function App() {
       <Header
         isDark={isDark}
         onToggleDarkMode={toggleDarkMode}
-        onExport={handleExport}
         onShowTemplates={handleToggleSidebar}
         showTemplates={showSidebar}
         saveStatus={saveStatus}
@@ -264,6 +265,8 @@ function App() {
                 isDark={isDark}
                 onSvgGenerated={handleSvgGenerated}
                 onCodeFix={setCode}
+                onExport={handleExport}
+                onPresenterMode={() => setShowPresenterMode(true)}
               />
             </div>
           </Split>
@@ -302,6 +305,16 @@ function App() {
         currentTitle={activeDiagram?.name ?? ''}
         currentDescription={activeDiagram?.description ?? ''}
         onApply={handleApplyMetadata}
+      />
+
+      {/* Presenter Mode */}
+      <PresenterMode
+        isOpen={showPresenterMode}
+        onClose={() => setShowPresenterMode(false)}
+        svg={currentSvg}
+        title={activeDiagram?.name}
+        description={activeDiagram?.description}
+        isDark={isDark}
       />
     </div>
   );

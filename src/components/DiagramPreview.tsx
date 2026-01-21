@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { renderDiagram } from '@/lib/mermaid-config';
-import { ZoomIn, ZoomOut, Maximize2, Hand, RotateCcw, Sparkles, Loader2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Hand, RotateCcw, Sparkles, Loader2, Download } from 'lucide-react';
 import { useLLMFeatures } from '@/hooks/useLLMFeatures';
 
 interface DiagramPreviewProps {
@@ -8,9 +8,11 @@ interface DiagramPreviewProps {
   isDark: boolean;
   onSvgGenerated?: (svg: string) => void;
   onCodeFix?: (fixedCode: string) => void;
+  onExport?: () => void;
+  onPresenterMode?: () => void;
 }
 
-export function DiagramPreview({ code, isDark, onSvgGenerated, onCodeFix }: DiagramPreviewProps) {
+export function DiagramPreview({ code, isDark, onSvgGenerated, onCodeFix, onExport, onPresenterMode }: DiagramPreviewProps) {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
@@ -148,12 +150,6 @@ export function DiagramPreview({ code, isDark, onSvgGenerated, onCodeFix }: Diag
     setPosition({ x: 0, y: 0 });
   }, []);
 
-  const handleFitToView = useCallback(() => {
-    // Reset zoom and position
-    setZoom(100);
-    setPosition({ x: 0, y: 0 });
-  }, []);
-
   // Reset position when diagram changes
   useEffect(() => {
     setPosition({ x: 0, y: 0 });
@@ -200,14 +196,6 @@ export function DiagramPreview({ code, isDark, onSvgGenerated, onCodeFix }: Diag
           <div className="w-px h-4 bg-border mx-1" />
           
           <button
-            onClick={handleFitToView}
-            className="btn btn-ghost btn-icon h-7 w-7"
-            title="Fit to view"
-          >
-            <Maximize2 size={14} />
-          </button>
-          
-          <button
             onClick={handleResetZoom}
             className="btn btn-ghost btn-icon h-7 w-7"
             title="Reset view"
@@ -215,11 +203,34 @@ export function DiagramPreview({ code, isDark, onSvgGenerated, onCodeFix }: Diag
             <RotateCcw size={14} />
           </button>
           
+          {onPresenterMode && (
+            <button
+              onClick={onPresenterMode}
+              className="btn btn-ghost btn-icon h-7 w-7"
+              title="Presenter mode"
+              disabled={!svg}
+            >
+              <Maximize2 size={14} />
+            </button>
+          )}
+          
           <div className="w-px h-4 bg-border mx-1" />
           
-          <div className="hidden sm:flex items-center gap-1 text-xs text-foreground-muted">
+          {onExport && (
+            <button
+              onClick={onExport}
+              className="btn btn-primary h-7 px-2 text-xs"
+              title="Export diagram (Ctrl+E)"
+              disabled={!svg}
+            >
+              <Download size={14} />
+              <span className="hidden sm:inline ml-1">Export</span>
+            </button>
+          )}
+          
+          <div className="hidden sm:flex items-center gap-1 text-xs text-foreground-muted ml-2">
             <Hand size={14} />
-            <span>Drag to pan • Ctrl+Scroll to zoom</span>
+            <span>Drag to pan</span>
           </div>
         </div>
         
