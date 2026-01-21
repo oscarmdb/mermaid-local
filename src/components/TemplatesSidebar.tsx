@@ -4,15 +4,11 @@ import { DiagramTemplate, getTemplatesByCategory } from '@/lib/templates';
 import { cn } from '@/lib/utils';
 
 interface TemplatesSidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
   onSelectTemplate: (template: DiagramTemplate) => void;
   currentTemplateId?: string;
 }
 
 export function TemplatesSidebar({
-  isOpen,
-  onClose,
   onSelectTemplate,
   currentTemplateId,
 }: TemplatesSidebarProps) {
@@ -21,41 +17,18 @@ export function TemplatesSidebar({
 
   const handleTemplateClick = (template: DiagramTemplate) => {
     onSelectTemplate(template);
-    // Close sidebar on mobile after selection
-    if (window.innerWidth < 1024) {
-      onClose();
-    }
   };
 
   return (
-    <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="h-12 border-b border-border flex items-center px-4 shrink-0">
+        <Sparkles size={18} className="text-primary mr-2" />
+        <span className="font-semibold text-sm">Starter Templates</span>
+      </div>
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          'fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto',
-          'w-72 bg-background border-r border-border',
-          'transform transition-transform duration-200 ease-out',
-          'flex flex-col',
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-0 lg:overflow-hidden'
-        )}
-      >
-        {/* Header */}
-        <div className="h-14 border-b border-border flex items-center px-4 shrink-0">
-          <Sparkles size={18} className="text-primary mr-2" />
-          <span className="font-semibold">Templates</span>
-        </div>
-
-        {/* Template list */}
-        <div className="flex-1 overflow-y-auto py-2">
+      {/* Template list */}
+      <div className="flex-1 overflow-y-auto py-2">
           {Array.from(templatesByCategory.entries()).map(([category, templates]) => (
             <div key={category} className="mb-1">
               {/* Category header */}
@@ -107,11 +80,9 @@ export function TemplatesSidebar({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border text-xs text-foreground-muted">
-          <p>All data stays on your device.</p>
-          <p className="mt-1">No internet connection required.</p>
+        <div className="p-3 border-t border-border text-xs text-foreground-muted text-center">
+          Select a template to start
         </div>
-      </aside>
-    </>
+      </div>
   );
 }
