@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { X, Download, FileImage, FileCode, File } from 'lucide-react';
-import { downloadFile, svgToPng } from '@/lib/utils';
+import { downloadFile, elementToPng, sanitizeSvgForExport } from '@/lib/utils';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -62,17 +62,19 @@ export function ExportDialog({ isOpen, onClose, svg, code }: ExportDialogProps) 
 
       switch (selectedFormat) {
         case 'svg': {
-          const blob = new Blob([svg], { type: 'image/svg+xml' });
+          // Sanitize SVG to fix invalid HTML inside foreignObject elements
+          const sanitizedSvg = sanitizeSvgForExport(svg);
+          const blob = new Blob([sanitizedSvg], { type: 'image/svg+xml' });
           downloadFile(blob, `${baseFilename}.svg`);
           break;
         }
         case 'png': {
-          const pngBlob = await svgToPng(svg, 1);
+          const pngBlob = await elementToPng(svg, 1);
           downloadFile(pngBlob, `${baseFilename}.png`);
           break;
         }
         case 'png2x': {
-          const png2xBlob = await svgToPng(svg, 2);
+          const png2xBlob = await elementToPng(svg, 2);
           downloadFile(png2xBlob, `${baseFilename}@2x.png`);
           break;
         }

@@ -21,14 +21,26 @@ export function DiagramPreview({ code, isDark, onSvgGenerated }: DiagramPreviewP
   const contentRef = useRef<HTMLDivElement>(null);
   const renderIdRef = useRef(0);
 
-  // Handle mouse wheel zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    // Only zoom if Ctrl/Cmd is pressed, otherwise allow normal scroll
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -10 : 10;
-      setZoom((prev) => Math.min(Math.max(prev + delta, 25), 300));
-    }
+  // Handle mouse wheel zoom with non-passive listener to allow preventDefault
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Only zoom if Ctrl/Cmd is pressed, otherwise allow normal scroll
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -10 : 10;
+        setZoom((prev) => Math.min(Math.max(prev + delta, 25), 300));
+      }
+    };
+
+    // Attach with passive: false to allow preventDefault
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
   }, []);
 
   // Handle pan/drag functionality
@@ -212,7 +224,6 @@ export function DiagramPreview({ code, isDark, onSvgGenerated }: DiagramPreviewP
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        onWheel={handleWheel}
       >
         {error ? (
           <div className="p-4">

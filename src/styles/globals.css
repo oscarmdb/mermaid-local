@@ -155,6 +155,22 @@ body {
   fill: #1e1e1e !important;
 }
 
+/* Fix for HTML labels inside foreignObject (constraints, notes with HTML) */
+.dark .mermaid-container svg foreignObject,
+.dark .mermaid-container svg foreignObject * {
+  color: #1e1e1e !important;
+}
+
+.dark .mermaid-container svg foreignObject div,
+.dark .mermaid-container svg foreignObject span,
+.dark .mermaid-container svg foreignObject p,
+.dark .mermaid-container svg foreignObject b,
+.dark .mermaid-container svg foreignObject i,
+.dark .mermaid-container svg foreignObject strong,
+.dark .mermaid-container svg foreignObject em {
+  color: #1e1e1e !important;
+}
+
 /* Button styles */
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150;
