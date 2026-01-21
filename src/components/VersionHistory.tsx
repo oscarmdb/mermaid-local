@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { History, RotateCcw, Clock, X, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { History, RotateCcw, Clock, X, Star, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { useDiagramVersions, rollbackToVersion, formatRelativeTime } from '@/hooks/useDatabase';
 import { cn } from '@/lib/utils';
 
@@ -109,6 +109,8 @@ export function VersionHistory({
                         'absolute left-1.5 top-1.5 w-3 h-3 rounded-full border-2',
                         isCurrent
                           ? 'bg-primary border-primary'
+                          : version.aiGenerated
+                          ? 'bg-purple-500 border-purple-500'
                           : version.autoSave
                           ? 'bg-background border-foreground-muted'
                           : 'bg-amber-500 border-amber-500'
@@ -128,23 +130,32 @@ export function VersionHistory({
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           {/* Label or type indicator */}
-                          <div className="flex items-center gap-1 mb-0.5">
+                          <div className="flex items-center gap-1 mb-0.5 flex-wrap">
                             {isCurrent && (
                               <span className="text-xs font-medium text-primary">Current</span>
                             )}
-                            {!isCurrent && version.label && (
-                              <>
-                                <Star size={10} className="text-amber-500" />
-                                <span className="text-xs font-medium truncate">{version.label}</span>
-                              </>
+                            {version.aiGenerated && (
+                              <span className="inline-flex items-center gap-0.5 text-xs font-medium text-purple-500 shrink-0">
+                                <Sparkles size={10} />
+                                AI
+                              </span>
                             )}
-                            {!isCurrent && !version.label && (
+                            {!isCurrent && !version.label && !version.aiGenerated && (
                               <span className="text-xs text-foreground-muted">
                                 {version.autoSave ? 'Auto-saved' : 'Manual save'}
                               </span>
                             )}
+                            {!isCurrent && version.label && !version.aiGenerated && (
+                              <Star size={10} className="text-amber-500 shrink-0" />
+                            )}
                           </div>
                           
+                          {/* Description/label text on its own line for AI changes */}
+                          {version.label && (
+                            <p className="text-xs text-foreground-muted line-clamp-2 mt-0.5">
+                              {version.label}
+                            </p>
+                          )}
                           {/* Timestamp */}
                           <div className="flex items-center gap-1 text-xs text-foreground-muted">
                             <Clock size={10} />

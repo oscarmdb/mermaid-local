@@ -27,6 +27,7 @@ interface UseAutoSaveReturn {
   lastSavedAt: Date | null;
   hasUnsavedChanges: boolean;
   saveNow: (label?: string) => Promise<void>;
+  markAsSaved: (code: string) => void; // Mark code as saved (e.g., after AI creates version)
 }
 
 export function useAutoSave({
@@ -159,10 +160,32 @@ export function useAutoSave({
     }
   }, [diagramId]); // Only reset when diagram ID changes, not code
   
+  // Mark code as already saved (used when AI creates a version directly)
+  const markAsSaved = useCallback((savedCode: string) => {
+    lastSavedCodeRef.current = savedCode;
+    setHasUnsavedChanges(false);
+    setSaveStatus('saved');
+    setLastSavedAt(new Date());
+    
+    // Clear any pending auto-save
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    
+    // Reset to idle after brief display
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        setSaveStatus('idle');
+      }
+    }, 2000);
+  }, []);
+  
   return {
     saveStatus,
     lastSavedAt,
     hasUnsavedChanges,
     saveNow,
+    markAsSaved,
   };
 }

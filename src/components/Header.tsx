@@ -1,4 +1,4 @@
-import { Sun, Moon, Download, FileCode, Menu, X, Save, History, Check, Loader2, Circle } from 'lucide-react';
+import { Sun, Moon, Download, FileCode, Menu, X, Save, History, Check, Loader2, Circle, Settings, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SaveStatus } from '@/hooks/useAutoSave';
 
@@ -13,6 +13,9 @@ interface HeaderProps {
   activeDiagramName?: string;
   onShowHistory?: () => void;
   onManualSave?: () => void;
+  onOpenSettings?: () => void;
+  isLLMEnabled?: boolean;
+  onGenerateMetadata?: () => void;
 }
 
 export function Header({
@@ -25,6 +28,9 @@ export function Header({
   activeDiagramName,
   onShowHistory,
   onManualSave,
+  onOpenSettings,
+  isLLMEnabled = false,
+  onGenerateMetadata,
 }: HeaderProps) {
   return (
     <header className="h-14 border-b border-border bg-background flex items-center justify-between px-4 shrink-0">
@@ -125,6 +131,17 @@ export function Header({
           </button>
         )}
 
+        {/* AI Generate Metadata button */}
+        {activeDiagramName && isLLMEnabled && onGenerateMetadata && (
+          <button
+            onClick={onGenerateMetadata}
+            className="btn btn-ghost btn-icon text-purple-500 hover:bg-purple-500/10"
+            title="Generate title & description with AI"
+          >
+            <Sparkles size={18} />
+          </button>
+        )}
+
         {/* Export button */}
         <button
           onClick={onExport}
@@ -133,6 +150,21 @@ export function Header({
         >
           <Download size={16} />
           <span className="hidden sm:inline">Export</span>
+        </button>
+
+        {/* Settings button */}
+        <button
+          onClick={onOpenSettings}
+          className={cn(
+            'btn btn-ghost btn-icon relative',
+            isLLMEnabled && 'text-purple-500'
+          )}
+          title="Settings"
+        >
+          <Settings size={18} />
+          {isLLMEnabled && (
+            <Sparkles size={10} className="absolute -top-0.5 -right-0.5 text-purple-500" />
+          )}
         </button>
 
         {/* Dark mode toggle */}

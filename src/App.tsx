@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import Split from 'react-split';
+import { Code, MessageSquare } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { CodeEditor } from '@/components/CodeEditor';
 import { DiagramPreview } from '@/components/DiagramPreview';
@@ -7,9 +8,13 @@ import { ExportDialog } from '@/components/ExportDialog';
 import { TemplatesSidebar } from '@/components/TemplatesSidebar';
 import { DiagramsSidebar } from '@/components/DiagramsSidebar';
 import { VersionHistory } from '@/components/VersionHistory';
+import { SettingsDialog } from '@/components/SettingsDialog';
+import { GenerateMetadataDialog } from '@/components/GenerateMetadataDialog';
+import { ChatTab } from '@/components/ChatTab';
 import { useDarkMode, useLocalStorage, useKeyboardShortcut } from '@/hooks/useLocalStorage';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import { useDiagram, useCurrentVersion } from '@/hooks/useDatabase';
+import { useDiagram, useCurrentVersion, updateDiagram } from '@/hooks/useDatabase';
+import { useLLMAvailable } from '@/hooks/useOllamaSettings';
 import { defaultDiagram, DiagramTemplate } from '@/lib/templates';
 import { initializeMermaid } from '@/lib/mermaid-config';
 import { db } from '@/lib/db';
@@ -25,6 +30,11 @@ function App() {
   const [sidebarView, setSidebarView] = useState<'diagrams' | 'templates'>('diagrams');
   const [showSidebar, setShowSidebar] = useState(true);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showGenerateMetadata, setShowGenerateMetadata] = useState(false);
+  
+  // Editor tab state (code or chat)
+  const [editorTab, setEditorTab] = useState<'code' | 'chat'>('code');
   
   // Diagram state
   const [activeDiagramId, setActiveDiagramId] = useLocalStorage<string | null>('mermaid-active-diagram', null);
@@ -37,8 +47,11 @@ function App() {
   const activeDiagram = useDiagram(activeDiagramId);
   const currentVersion = useCurrentVersion(activeDiagramId);
   
+  // LLM availability
+  const isLLMEnabled = useLLMAvailable();
+  
   // Auto-save hook
-  const { saveStatus, hasUnsavedChanges, saveNow } = useAutoSave({
+  const { saveStatus, hasUnsavedChanges, saveNow, markAsSaved } = useAutoSave({
     diagramId: activeDiagramId,
     code,
     enabled: !!activeDiagramId,
@@ -100,6 +113,15 @@ function App() {
     await saveNow(label || undefined);
   }, [activeDiagramId, saveNow]);
 
+  const handleApplyMetadata = useCallback(async (title: string, description: string) => {
+    if (!activeDiagramId) return;
+    
+    await updateDiagram(activeDiagramId, { 
+      name: title,
+      description: description,
+    });
+  }, [activeDiagramId]);
+
   // Keyboard shortcuts
   useKeyboardShortcut('e', handleExport, { ctrl: true });
   useKeyboardShortcut('e', handleExport, { meta: true });
@@ -122,6 +144,9 @@ function App() {
         activeDiagramName={activeDiagram?.name}
         onShowHistory={() => setShowVersionHistory(true)}
         onManualSave={handleManualSave}
+        onOpenSettings={() => setShowSettings(true)}
+        isLLMEnabled={isLLMEnabled}
+        onGenerateMetadata={() => setShowGenerateMetadata(true)}
       />
 
       {/* Main content */}
@@ -181,13 +206,55 @@ function App() {
             direction="horizontal"
             cursor="col-resize"
           >
-            {/* Code Editor */}
-            <div className="h-full overflow-hidden">
-              <CodeEditor
-                value={code}
-                onChange={setCode}
-                isDark={isDark}
-              />
+            {/* Code Editor / Chat Panel */}
+            <div className="h-full overflow-hidden flex flex-col">
+              {/* Tab buttons */}
+              <div className="flex border-b border-border shrink-0">
+                <button
+                  onClick={() => setEditorTab('code')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    editorTab === 'code'
+                      ? 'text-primary border-b-2 border-primary bg-primary/5'
+                      : 'text-foreground-muted hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <Code size={16} />
+                  Code
+                </button>
+                <button
+                  onClick={() => setEditorTab('chat')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    editorTab === 'chat'
+                      ? 'text-primary border-b-2 border-primary bg-primary/5'
+                      : 'text-foreground-muted hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <MessageSquare size={16} />
+                  Chat
+                  {isLLMEnabled && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                  )}
+                </button>
+              </div>
+              
+              {/* Tab content */}
+              <div className="flex-1 overflow-hidden">
+                {editorTab === 'code' ? (
+                  <CodeEditor
+                    value={code}
+                    onChange={setCode}
+                    isDark={isDark}
+                  />
+                ) : (
+                  <ChatTab
+                    diagramId={activeDiagramId}
+                    currentCode={code}
+                    onCodeChange={setCode}
+                    onMarkAsSaved={markAsSaved}
+                    onOpenSettings={() => setShowSettings(true)}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Diagram Preview */}
@@ -196,6 +263,7 @@ function App() {
                 code={code}
                 isDark={isDark}
                 onSvgGenerated={handleSvgGenerated}
+                onCodeFix={setCode}
               />
             </div>
           </Split>
@@ -218,6 +286,22 @@ function App() {
         isOpen={showVersionHistory}
         onClose={() => setShowVersionHistory(false)}
         onVersionSelect={(versionCode) => setCode(versionCode)}
+      />
+
+      {/* Settings Dialog */}
+      <SettingsDialog
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
+
+      {/* Generate Metadata Dialog */}
+      <GenerateMetadataDialog
+        isOpen={showGenerateMetadata}
+        onClose={() => setShowGenerateMetadata(false)}
+        code={code}
+        currentTitle={activeDiagram?.name ?? ''}
+        currentDescription={activeDiagram?.description ?? ''}
+        onApply={handleApplyMetadata}
       />
     </div>
   );

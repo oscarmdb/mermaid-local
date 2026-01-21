@@ -1,14 +1,16 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { renderDiagram } from '@/lib/mermaid-config';
-import { ZoomIn, ZoomOut, Maximize2, Hand, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Hand, RotateCcw, Sparkles, Loader2 } from 'lucide-react';
+import { useLLMFeatures } from '@/hooks/useLLMFeatures';
 
 interface DiagramPreviewProps {
   code: string;
   isDark: boolean;
   onSvgGenerated?: (svg: string) => void;
+  onCodeFix?: (fixedCode: string) => void;
 }
 
-export function DiagramPreview({ code, isDark, onSvgGenerated }: DiagramPreviewProps) {
+export function DiagramPreview({ code, isDark, onSvgGenerated, onCodeFix }: DiagramPreviewProps) {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
@@ -20,6 +22,19 @@ export function DiagramPreview({ code, isDark, onSvgGenerated }: DiagramPreviewP
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const renderIdRef = useRef(0);
+  
+  // LLM features
+  const { isAvailable: isLLMAvailable, fixError, fixStatus } = useLLMFeatures();
+
+  // Handle AI fix
+  const handleAIFix = useCallback(async () => {
+    if (!error || !onCodeFix) return;
+    
+    const fixedCode = await fixError(code, error);
+    if (fixedCode) {
+      onCodeFix(fixedCode);
+    }
+  }, [code, error, fixError, onCodeFix]);
 
   // Handle mouse wheel zoom with non-passive listener to allow preventDefault
   useEffect(() => {
@@ -228,8 +243,28 @@ export function DiagramPreview({ code, isDark, onSvgGenerated }: DiagramPreviewP
         {error ? (
           <div className="p-4">
             <div className="error-message">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-red-500 font-semibold">Syntax Error</span>
+                {isLLMAvailable && onCodeFix && (
+                  <button
+                    onClick={handleAIFix}
+                    disabled={fixStatus === 'loading'}
+                    className="btn btn-secondary text-xs py-1 px-2 flex items-center gap-1.5"
+                    title="Use AI to fix this error"
+                  >
+                    {fixStatus === 'loading' ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" />
+                        Fixing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={12} />
+                        Fix with AI
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
               <pre className="text-sm">{error}</pre>
             </div>

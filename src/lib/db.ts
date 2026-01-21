@@ -47,6 +47,7 @@ export interface Diagram {
   id: string;
   applicationId: string;
   name: string;
+  description?: string;
   type: DiagramType;
   currentVersionId: string | null;
   createdAt: Date;
@@ -61,7 +62,45 @@ export interface DiagramVersion {
   createdAt: Date;
   autoSave: boolean;
   label?: string;
+  aiGenerated?: boolean; // True if this version was created by AI chat
 }
+
+// ============================================
+// Chat Messages
+// ============================================
+
+export type ChatRole = 'user' | 'assistant';
+
+export interface ChatMessage {
+  id: string;
+  diagramId: string;
+  role: ChatRole;
+  content: string;
+  codeSnapshot?: string; // The diagram code at the time of this message
+  createdAt: Date;
+}
+
+// ============================================
+// Ollama Settings
+// ============================================
+
+export interface OllamaSettings {
+  id: string;  // Use 'default' as singleton key
+  endpointUrl: string;
+  selectedModel: string | null;
+  isEnabled: boolean;
+  lastConnectedAt: Date | null;
+  availableModels: string[];
+}
+
+export const DEFAULT_OLLAMA_SETTINGS: OllamaSettings = {
+  id: 'default',
+  endpointUrl: 'http://localhost:11434',
+  selectedModel: null,
+  isEnabled: false,
+  lastConnectedAt: null,
+  availableModels: [],
+};
 
 // ============================================
 // Database Class
@@ -72,6 +111,8 @@ export class MermaidDatabase extends Dexie {
   applications!: Table<Application>;
   diagrams!: Table<Diagram>;
   diagramVersions!: Table<DiagramVersion>;
+  chatMessages!: Table<ChatMessage>;
+  ollamaSettings!: Table<OllamaSettings>;
 
   constructor() {
     super('MermaidHostDB');
@@ -81,6 +122,25 @@ export class MermaidDatabase extends Dexie {
       applications: 'id, customerId, name, sortOrder, createdAt',
       diagrams: 'id, applicationId, name, type, sortOrder, createdAt, updatedAt',
       diagramVersions: 'id, diagramId, createdAt, autoSave',
+    });
+    
+    // Version 2: Add Ollama settings table
+    this.version(2).stores({
+      customers: 'id, name, sortOrder, createdAt',
+      applications: 'id, customerId, name, sortOrder, createdAt',
+      diagrams: 'id, applicationId, name, type, sortOrder, createdAt, updatedAt',
+      diagramVersions: 'id, diagramId, createdAt, autoSave',
+      ollamaSettings: 'id',
+    });
+
+    // Version 3: Add chat messages table
+    this.version(3).stores({
+      customers: 'id, name, sortOrder, createdAt',
+      applications: 'id, customerId, name, sortOrder, createdAt',
+      diagrams: 'id, applicationId, name, type, sortOrder, createdAt, updatedAt',
+      diagramVersions: 'id, diagramId, createdAt, autoSave',
+      ollamaSettings: 'id',
+      chatMessages: 'id, diagramId, createdAt',
     });
   }
 }

@@ -218,7 +218,7 @@ export async function createDiagram(
   return diagram;
 }
 
-export async function updateDiagram(id: string, updates: Partial<Pick<Diagram, 'name' | 'type' | 'sortOrder'>>): Promise<void> {
+export async function updateDiagram(id: string, updates: Partial<Pick<Diagram, 'name' | 'type' | 'sortOrder' | 'description'>>): Promise<void> {
   await db.diagrams.update(id, {
     ...updates,
     updatedAt: new Date(),
@@ -267,7 +267,8 @@ export async function createVersion(
   diagramId: string, 
   code: string, 
   autoSave: boolean = true,
-  label?: string
+  label?: string,
+  aiGenerated?: boolean
 ): Promise<DiagramVersion> {
   const now = new Date();
   const versionId = uuidv4();
@@ -279,6 +280,7 @@ export async function createVersion(
     createdAt: now,
     autoSave,
     label,
+    aiGenerated,
   };
   
   await db.transaction('rw', [db.diagrams, db.diagramVersions], async () => {

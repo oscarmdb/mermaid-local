@@ -10,8 +10,9 @@
       SECURITY: Strict CSP - only allow same-origin resources
       This is enforced at runtime by nginx, but also set here for dev
       Note: frame-ancestors only works via HTTP headers (set in nginx.conf)
+      Note: connect-src allows localhost for Ollama LLM integration
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; object-src 'none'; base-uri 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob: http://localhost:* http://127.0.0.1:*; object-src 'none'; base-uri 'self';">
   </head>
   <body>
     <div id="root"></div>
