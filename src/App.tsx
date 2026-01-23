@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import Split from 'react-split';
-import { Code, MessageSquare } from 'lucide-react';
+import { Code, MessageSquare, Blocks } from 'lucide-react';
 import { Header } from '@/components/Header';
+import { ArchitectureDesigner } from '@/components/designer';
 import { CodeEditor } from '@/components/CodeEditor';
 import { DiagramPreview } from '@/components/DiagramPreview';
 import { ExportDialog } from '@/components/ExportDialog';
@@ -34,8 +35,8 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showGenerateMetadata, setShowGenerateMetadata] = useState(false);
   
-  // Editor tab state (code or chat)
-  const [editorTab, setEditorTab] = useState<'code' | 'chat'>('code');
+  // Editor tab state (code, chat, or designer)
+  const [editorTab, setEditorTab] = useState<'code' | 'chat' | 'designer'>('code');
   
   // Diagram state
   const [activeDiagramId, setActiveDiagramId] = useLocalStorage<string | null>('mermaid-active-diagram', null);
@@ -236,23 +237,42 @@ function App() {
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                   )}
                 </button>
+                <button
+                  onClick={() => setEditorTab('designer')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    editorTab === 'designer'
+                      ? 'text-primary border-b-2 border-primary bg-primary/5'
+                      : 'text-foreground-muted hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <Blocks size={16} />
+                  Designer
+                </button>
               </div>
               
               {/* Tab content */}
               <div className="flex-1 overflow-hidden">
-                {editorTab === 'code' ? (
+                {editorTab === 'code' && (
                   <CodeEditor
                     value={code}
                     onChange={setCode}
                     isDark={isDark}
                   />
-                ) : (
+                )}
+                {editorTab === 'chat' && (
                   <ChatTab
                     diagramId={activeDiagramId}
                     currentCode={code}
                     onCodeChange={setCode}
                     onMarkAsSaved={markAsSaved}
                     onOpenSettings={() => setShowSettings(true)}
+                  />
+                )}
+                {editorTab === 'designer' && (
+                  <ArchitectureDesigner
+                    code={code}
+                    onCodeChange={setCode}
+                    isDark={isDark}
                   />
                 )}
               </div>
