@@ -1,9 +1,11 @@
 import { memo, useState, useCallback, useRef, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { Icon } from '@iconify/react';
 
 export interface BaseNodeData extends Record<string, unknown> {
   label: string;
-  nodeType: 'service' | 'database' | 'cloud' | 'user' | 'process';
+  nodeType: 'service' | 'database' | 'cloud' | 'user' | 'process' | 'server' | 'disk' | 'internet' | 'queue' | 'loadbalancer' | 'firewall' | 'gateway' | 'storage' | 'cache' | 'messagequeue' | 'api' | 'microservice' | 'container' | 'lambda' | 'cdn' | 'junction' | 'group';
+  icon?: string; // Store original icon name like 'logos:aws-lambda'
   onLabelChange?: (id: string, label: string) => void;
 }
 
@@ -13,7 +15,7 @@ interface BaseNodeProps {
   selected?: boolean;
   icon: React.ReactNode;
   className: string;
-  shape?: 'rectangle' | 'rounded' | 'cylinder' | 'circle' | 'diamond';
+  shape?: 'rectangle' | 'rounded' | 'cylinder' | 'circle' | 'diamond' | 'hexagon' | 'stadium' | 'triangle' | 'trapezoid' | 'parallelogram';
 }
 
 export const BaseNode = memo(({ id, data, selected, icon, className, shape = 'rounded' }: BaseNodeProps) => {
@@ -55,6 +57,11 @@ export const BaseNode = memo(({ id, data, selected, icon, className, shape = 'ro
     cylinder: 'rounded-lg',
     circle: 'rounded-full aspect-square',
     diamond: 'rounded-lg rotate-45',
+    hexagon: 'rounded-lg clip-path-hexagon',
+    triangle: 'rounded-lg clip-path-triangle',
+    stadium: 'rounded-full',
+    trapezoid: 'rounded-lg clip-path-trapezoid',
+    parallelogram: 'rounded-lg skew-x-12',
   };
 
   return (
@@ -72,17 +79,25 @@ export const BaseNode = memo(({ id, data, selected, icon, className, shape = 'ro
       <Handle
         type="target"
         position={Position.Top}
+        id="T"
         className="!w-3 !h-3 !bg-primary !border-2 !border-background"
       />
       <Handle
         type="target"
         position={Position.Left}
+        id="L"
         className="!w-3 !h-3 !bg-primary !border-2 !border-background"
       />
 
       {/* Content */}
       <div className={`flex items-center gap-2 ${shape === 'diamond' ? '-rotate-45' : ''}`}>
-        <span className="shrink-0">{icon}</span>
+        <span className="shrink-0">
+          {data.icon ? (
+            <Icon icon={data.icon} width={16} height={16} />
+          ) : (
+            icon
+          )}
+        </span>
         {isEditing ? (
           <input
             ref={inputRef}
@@ -102,11 +117,13 @@ export const BaseNode = memo(({ id, data, selected, icon, className, shape = 'ro
       <Handle
         type="source"
         position={Position.Bottom}
+        id="B"
         className="!w-3 !h-3 !bg-primary !border-2 !border-background"
       />
       <Handle
         type="source"
         position={Position.Right}
+        id="R"
         className="!w-3 !h-3 !bg-primary !border-2 !border-background"
       />
     </div>

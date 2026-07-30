@@ -4,10 +4,12 @@
  * SECURITY: 
  * - securityLevel: 'strict' - Prevents script execution
  * - No external font loading - Uses system fonts only
- * - No external URLs or network calls
+ * - External Iconify API allowed for architecture icons
  */
 
 import mermaid from 'mermaid';
+
+let iconsRegistered = false;
 
 export interface MermaidThemeConfig {
   theme: 'default' | 'dark' | 'forest' | 'neutral' | 'base';
@@ -213,6 +215,40 @@ export const darkThemeConfig: MermaidThemeConfig = {
 export function initializeMermaid(isDark: boolean = false): void {
   const themeConfig = isDark ? darkThemeConfig : lightThemeConfig;
   
+  // Register icon packs once
+  if (!iconsRegistered) {
+    try {
+      mermaid.registerIconPacks([
+        {
+          name: 'logos',
+          loader: async () => {
+            const icons = [
+              'aws-lambda', 'aws-dynamodb', 'aws-aurora', 'aws-s3', 'aws-ec2',
+              'aws-api-gateway', 'aws-cloudfront', 'aws-route53', 'aws-open-search',
+              'kubernetes', 'docker-icon', 'google-cloud', 'microsoft-azure',
+              'mongodb-icon', 'mongodb'
+            ];
+            const response = await fetch(`https://api.iconify.design/logos.json?icons=${icons.join(',')}`);
+            return await response.json();
+          },
+        },
+        {
+          name: 'lucide',
+          loader: async () => {
+            const icons = [
+              'server', 'database', 'cloud', 'user', 'hard-drive', 'globe', 'zap', 'box'
+            ];
+            const response = await fetch(`https://api.iconify.design/lucide.json?icons=${icons.join(',')}`);
+            return await response.json();
+          },
+        },
+      ]);
+      iconsRegistered = true;
+    } catch (error) {
+      console.error('Failed to register icon packs:', error);
+    }
+  }
+
   mermaid.initialize({
     // SECURITY: Strict mode - no script execution allowed
     securityLevel: 'strict',
@@ -313,6 +349,13 @@ export function initializeMermaid(isDark: boolean = false): void {
     // Git graph defaults
     gitGraph: {
       useMaxWidth: true,
+    },
+    
+    // Architecture diagram defaults
+    architecture: {
+      useMaxWidth: true,
+      fontSize: 14,
+      padding: 10,
     },
   });
 }

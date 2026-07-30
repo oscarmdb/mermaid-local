@@ -51,6 +51,19 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* Custom clip-path shapes for nodes */
+.clip-path-hexagon {
+  clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+}
+
+.clip-path-triangle {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+.clip-path-trapezoid {
+  clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%);
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

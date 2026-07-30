@@ -10,6 +10,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@iconify/react": "^6.0.2",
     "@monaco-editor/react": "^4.6.0",
     "@xyflow/react": "^12.10.0",
     "clsx": "^2.1.0",
