@@ -131,6 +131,20 @@ body {
   width: 100%;
 }
 
+/* Presenter mode: render the diagram at its natural size so it can be
+   scaled to fit the window (overrides .mermaid-container centering) */
+.presenter-svg.mermaid-container {
+  display: block;
+  padding: 0;
+  min-height: 0;
+}
+
+.presenter-svg svg {
+  max-width: none !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* Grab cursor for panning */
 .diagram-viewport.cursor-grab {
   cursor: grab;

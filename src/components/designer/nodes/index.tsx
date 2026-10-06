@@ -262,6 +262,7 @@ export const GroupNode = memo((props: CustomNodeProps) => (
 ));
 GroupNode.displayName = 'GroupNode';
 
+// eslint-disable-next-line react-refresh/only-export-components -- this map of components is consumed directly by ReactFlow's `nodeTypes` prop
 export const nodeTypes = {
   service: ServiceNode,
   database: DatabaseNode,

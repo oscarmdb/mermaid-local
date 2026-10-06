@@ -52,6 +52,10 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
         handleTestConnection(settings.endpointUrl, false);
       }
     }
+    // handleTestConnection is intentionally omitted - it's recreated on every
+    // endpointUrl keystroke, and including it would re-trigger this effect
+    // and re-test the connection while the user is still typing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, settings.endpointUrl, settings.selectedModel, settings.isEnabled]);
 
   const handleTestConnection = useCallback(async (endpoint?: string, showLoading = true) => {

@@ -71,8 +71,9 @@ export function nodesToMermaid(nodes: Node[], edges: Edge[], diagramType: 'flowc
       const { source, target, data, animated } = edge;
       const sourceId = sanitizeId(source);
       const targetId = sanitizeId(target);
-      const sourceSide = (data as any)?.sourceSide || 'R';
-      const targetSide = (data as any)?.targetSide || 'L';
+      const edgeData = data as { sourceSide?: string; targetSide?: string } | undefined;
+      const sourceSide = edgeData?.sourceSide || 'R';
+      const targetSide = edgeData?.targetSide || 'L';
       const arrowSide = animated ? '>' : '';
       const arrow = `--${arrowSide}`;
       
@@ -290,9 +291,9 @@ function parseFlowchartDiagram(code: string): { nodes: Node[]; edges: Edge[] } {
   const lines = code.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('flowchart') && !l.startsWith('block') && !l.startsWith('%%'));
 
   // Regular expressions for parsing
-  const nodeDefRegex = /^([A-Za-z0-9_]+)\s*(\[{1,2}|\({1,2}|\{{1}|>\[?)([^\]\)\}]+)(\]{1,2}|\){1,2}|\}{1}|\])?$/;
+  const nodeDefRegex = /^([A-Za-z0-9_]+)\s*(\[{1,2}|\({1,2}|\{{1}|>\[?)([^\])}]+)(\]{1,2}|\){1,2}|\}{1}|\])?$/;
   const edgeRegex = /^([A-Za-z0-9_]+)\s*(-->|---->|-.->|-.-|--)\s*(\|[^|]+\|)?\s*([A-Za-z0-9_]+)$/;
-  const combinedRegex = /^([A-Za-z0-9_]+)\s*(\[{1,2}|\({1,2}|\{{1})?([^\]\)\}\-]+)?(\]{1,2}|\){1,2}|\}{1})?\s*(-->|---->|-.->|-.-|--)\s*(\|[^|]+\|)?\s*([A-Za-z0-9_]+)\s*(\[{1,2}|\({1,2}|\{{1})?([^\]\)\}]+)?(\]{1,2}|\){1,2}|\}{1})?$/;
+  const combinedRegex = /^([A-Za-z0-9_]+)\s*(\[{1,2}|\({1,2}|\{{1})?([^\])}-]+)?(\]{1,2}|\){1,2}|\}{1})?\s*(-->|---->|-.->|-.-|--)\s*(\|[^|]+\|)?\s*([A-Za-z0-9_]+)\s*(\[{1,2}|\({1,2}|\{{1})?([^\])}]+)?(\]{1,2}|\){1,2}|\}{1})?$/;
 
   // Determine node type from brackets
   const getNodeTypeFromBrackets = (prefix: string): BaseNodeData['nodeType'] => {

@@ -103,6 +103,131 @@ export const DEFAULT_OLLAMA_SETTINGS: OllamaSettings = {
 };
 
 // ============================================
+// Architecture Review: Findings & Action Items
+//
+// Scoped to a Diagram (e.g. "Target Architecture") so a solutions architect
+// can capture review findings and follow-up actions directly alongside the
+// diagram being discussed with the customer. Categories map to a MongoDB
+// architecture review rubric, but severity/status/notes remain freeform so
+// the checklist stays a guide rather than a mandatory gate.
+// ============================================
+
+export type FindingCategory =
+  | 'workload-data-model'
+  | 'indexing-queries'
+  | 'scalability'
+  | 'availability-dr'
+  | 'security-networking'
+  | 'observability-ops'
+  | 'migration'
+  | 'cost'
+  | 'other';
+
+export type FindingSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export type FindingStatus = 'open' | 'accepted-risk' | 'resolved';
+
+export interface ReviewFinding {
+  id: string;
+  diagramId: string;
+  category: FindingCategory;
+  severity: FindingSeverity;
+  status: FindingStatus;
+  title: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const FINDING_CATEGORY_LABELS: Record<FindingCategory, string> = {
+  'workload-data-model': 'Workload & Data Model',
+  'indexing-queries': 'Indexing & Queries',
+  'scalability': 'Scalability',
+  'availability-dr': 'Availability & DR',
+  'security-networking': 'Security & Networking',
+  'observability-ops': 'Observability & Operations',
+  'migration': 'Migration',
+  'cost': 'Cost',
+  'other': 'Other',
+};
+
+export type ActionItemStatus = 'open' | 'in-progress' | 'done';
+
+export interface ActionItem {
+  id: string;
+  diagramId: string;
+  description: string;
+  owner?: string;
+  dueDate?: Date;
+  status: ActionItemStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============================================
+// Diagram Annotations (pen strokes & comment pins)
+//
+// Coordinates are stored in the diagram's natural (unscaled) coordinate
+// space so annotations stay anchored to the architecture at any zoom level.
+// ============================================
+
+export interface AnnotationStroke {
+  id: string;
+  diagramId: string;
+  color: string;
+  size: number;
+  /** Points in the diagram's natural coordinate space */
+  points: { x: number; y: number }[];
+  createdAt: Date;
+}
+
+export interface AnnotationComment {
+  id: string;
+  diagramId: string;
+  /** Position in the diagram's natural coordinate space */
+  x: number;
+  y: number;
+  text: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============================================
+// Required Capabilities
+//
+// Lets a solutions architect capture the capabilities a customer's
+// architecture must provide (e.g. "Multi-region failover", "Full-text
+// search") and track whether the proposed design covers them.
+// ============================================
+
+export type CapabilityPriority = 'must-have' | 'should-have' | 'nice-to-have';
+
+export type CapabilityStatus = 'identified' | 'covered' | 'gap';
+
+export interface RequiredCapability {
+  id: string;
+  diagramId: string;
+  name: string;
+  notes?: string;
+  priority: CapabilityPriority;
+  status: CapabilityStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const CAPABILITY_PRIORITY_LABELS: Record<CapabilityPriority, string> = {
+  'must-have': 'Must Have',
+  'should-have': 'Should Have',
+  'nice-to-have': 'Nice to Have',
+};
+
+export const CAPABILITY_STATUS_LABELS: Record<CapabilityStatus, string> = {
+  identified: 'Identified',
+  covered: 'Covered by Design',
+  gap: 'Gap',
+};
+
+// ============================================
 // Database Class
 // ============================================
 
@@ -113,6 +238,11 @@ export class MermaidDatabase extends Dexie {
   diagramVersions!: Table<DiagramVersion>;
   chatMessages!: Table<ChatMessage>;
   ollamaSettings!: Table<OllamaSettings>;
+  reviewFindings!: Table<ReviewFinding>;
+  actionItems!: Table<ActionItem>;
+  annotationStrokes!: Table<AnnotationStroke>;
+  annotationComments!: Table<AnnotationComment>;
+  capabilities!: Table<RequiredCapability>;
 
   constructor() {
     super('MermaidHostDB');
@@ -141,6 +271,33 @@ export class MermaidDatabase extends Dexie {
       diagramVersions: 'id, diagramId, createdAt, autoSave',
       ollamaSettings: 'id',
       chatMessages: 'id, diagramId, createdAt',
+    });
+
+    // Version 4: Add review findings & action items tables (architecture review workflow)
+    this.version(4).stores({
+      customers: 'id, name, sortOrder, createdAt',
+      applications: 'id, customerId, name, sortOrder, createdAt',
+      diagrams: 'id, applicationId, name, type, sortOrder, createdAt, updatedAt',
+      diagramVersions: 'id, diagramId, createdAt, autoSave',
+      ollamaSettings: 'id',
+      chatMessages: 'id, diagramId, createdAt',
+      reviewFindings: 'id, diagramId, category, severity, status, createdAt',
+      actionItems: 'id, diagramId, status, dueDate, createdAt',
+    });
+
+    // Version 5: Add diagram annotations (pen strokes, comment pins) and required capabilities
+    this.version(5).stores({
+      customers: 'id, name, sortOrder, createdAt',
+      applications: 'id, customerId, name, sortOrder, createdAt',
+      diagrams: 'id, applicationId, name, type, sortOrder, createdAt, updatedAt',
+      diagramVersions: 'id, diagramId, createdAt, autoSave',
+      ollamaSettings: 'id',
+      chatMessages: 'id, diagramId, createdAt',
+      reviewFindings: 'id, diagramId, category, severity, status, createdAt',
+      actionItems: 'id, diagramId, status, dueDate, createdAt',
+      annotationStrokes: 'id, diagramId, createdAt',
+      annotationComments: 'id, diagramId, createdAt',
+      capabilities: 'id, diagramId, priority, status, createdAt',
     });
   }
 }

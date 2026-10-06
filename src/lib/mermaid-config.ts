@@ -226,7 +226,7 @@ export function initializeMermaid(isDark: boolean = false): void {
               'aws-lambda', 'aws-dynamodb', 'aws-aurora', 'aws-s3', 'aws-ec2',
               'aws-api-gateway', 'aws-cloudfront', 'aws-route53', 'aws-open-search',
               'kubernetes', 'docker-icon', 'google-cloud', 'microsoft-azure',
-              'mongodb-icon', 'mongodb'
+              'mongodb-icon', 'mongodb', 'kafka', 'redis', 'elasticsearch'
             ];
             const response = await fetch(`https://api.iconify.design/logos.json?icons=${icons.join(',')}`);
             return await response.json();
@@ -371,13 +371,9 @@ export async function renderDiagram(
 ): Promise<string> {
   // Re-initialize with correct theme before rendering
   initializeMermaid(isDark);
-  
-  try {
-    const { svg } = await mermaid.render(elementId, code);
-    return svg;
-  } catch (error) {
-    throw error;
-  }
+
+  const { svg } = await mermaid.render(elementId, code);
+  return svg;
 }
 
 /**

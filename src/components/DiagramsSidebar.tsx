@@ -33,7 +33,7 @@ import {
   deleteApplication,
   deleteDiagram,
 } from '@/hooks/useDatabase';
-import { getDiagramTypeIcon, exportAllData, importAllData } from '@/lib/db';
+import { getDiagramTypeIcon, exportAllData, importAllData, type DiagramType } from '@/lib/db';
 import { cn } from '@/lib/utils';
 
 interface DiagramsSidebarProps {
@@ -677,7 +677,7 @@ function ApplicationNode({
 }
 
 interface DiagramNodeProps {
-  diagram: { id: string; name: string; type: string };
+  diagram: { id: string; name: string; type: DiagramType };
   isActive: boolean;
   onSelect: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
@@ -708,7 +708,7 @@ function DiagramNode({
       onClick={onSelect}
       onContextMenu={onContextMenu}
     >
-      <span className="text-sm">{getDiagramTypeIcon(diagram.type as any)}</span>
+      <span className="text-sm">{getDiagramTypeIcon(diagram.type)}</span>
       
       {isEditing ? (
         <input

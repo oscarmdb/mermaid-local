@@ -16,52 +16,18 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Server, Database, Cloud, User, HardDrive, Globe, Zap, Box, Trash2, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Trash2, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import { nodeTypes } from './nodes';
 import { BaseNodeData } from './nodes/BaseNode';
 import { nodesToMermaid, mermaidToNodes } from '@/lib/designer-sync';
+import { nodeTemplates, cloudTemplates, mongodbTemplates, streamingTemplates } from './templates';
 
 interface ArchitectureDesignerProps {
   code: string;
   onCodeChange: (code: string) => void;
   isDark: boolean;
 }
-
-const nodeTemplates = [
-  { type: 'service', label: 'Service', icon: Server, color: 'blue' },
-  { type: 'database', label: 'Database', icon: Database, color: 'green' },
-  { type: 'cloud', label: 'Cloud', icon: Cloud, color: 'purple' },
-  { type: 'user', label: 'User', icon: User, color: 'orange' },
-  { type: 'server', label: 'Server', icon: Server, color: 'slate' },
-  { type: 'disk', label: 'Storage', icon: HardDrive, color: 'indigo' },
-  { type: 'internet', label: 'Internet', icon: Globe, color: 'cyan' },
-  { type: 'junction', label: 'Junction', icon: Zap, color: 'primary' },
-  { type: 'group', label: 'Group', icon: Box, color: 'gray' },
-] as const;
-
-const cloudTemplates = [
-  { type: 'service', label: 'Lambda', iconStr: 'logos:aws-lambda' },
-  { type: 'database', label: 'DynamoDB', iconStr: 'logos:aws-dynamodb' },
-  { type: 'database', label: 'RDS/Aurora', iconStr: 'logos:aws-aurora' },
-  { type: 'service', label: 'S3', iconStr: 'logos:aws-s3' },
-  { type: 'server', label: 'EC2', iconStr: 'logos:aws-ec2' },
-  { type: 'service', label: 'API Gateway', iconStr: 'logos:aws-api-gateway' },
-  { type: 'service', label: 'CloudFront', iconStr: 'logos:aws-cloudfront' },
-  { type: 'service', label: 'Route53', iconStr: 'logos:aws-route53' },
-  { type: 'service', label: 'OpenSearch', iconStr: 'logos:aws-open-search' },
-  { type: 'service', label: 'Kubernetes', iconStr: 'logos:kubernetes' },
-  { type: 'service', label: 'Docker', iconStr: 'logos:docker-icon' },
-  { type: 'cloud', label: 'GCP', iconStr: 'logos:google-cloud' },
-  { type: 'cloud', label: 'Azure', iconStr: 'logos:microsoft-azure' },
-] as const;
-
-const mongodbTemplates = [
-  { type: 'cloud', label: 'Atlas', iconStr: 'logos:mongodb-icon' },
-  { type: 'group', label: 'Cluster', iconStr: 'logos:mongodb' },
-  { type: 'database', label: 'Database', iconStr: 'logos:mongodb-icon' },
-  { type: 'service', label: 'Compass', iconStr: 'logos:mongodb' },
-] as const;
 
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
@@ -147,6 +113,11 @@ function DesignerInner({ code, onCodeChange, isDark }: ArchitectureDesignerProps
     setTimeout(() => {
       isUpdatingFromCode.current = false;
     }, 100);
+    // setNodes/setEdges are stable dispatchers and handleLabelChange only
+    // depends on the (also stable) setNodes, so omitting them here is safe;
+    // handleLabelChange is declared later in this component (referencing it
+    // in the dependency array would throw a temporal-dead-zone error).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
   // Sync from nodes to code (when nodes/edges change)
@@ -252,7 +223,7 @@ function DesignerInner({ code, onCodeChange, isDark }: ArchitectureDesignerProps
   );
 
   const onNodeDragStop = useCallback(
-    (_: any, node: Node) => {
+    (_event: MouseEvent | TouchEvent, node: Node) => {
       if (node.type === 'group') return;
 
       const intersections = getIntersectingNodes(node);
@@ -410,6 +381,23 @@ function DesignerInner({ code, onCodeChange, isDark }: ArchitectureDesignerProps
               <div className="text-xs font-bold text-foreground-muted uppercase tracking-wider mb-2">MongoDB</div>
               <div className="flex flex-col gap-2">
                 {mongodbTemplates.map(({ type, label, iconStr }) => (
+                  <div
+                    key={`${type}-${label}`}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, type, iconStr)}
+                    className="flex items-center gap-3 p-2 rounded-lg border-2 border-border bg-card/50 cursor-grab active:cursor-grabbing transition-all hover:shadow-md text-foreground"
+                  >
+                    <Icon icon={iconStr} width={16} height={16} />
+                    <span className="text-sm font-medium">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs font-bold text-foreground-muted uppercase tracking-wider mb-2">Streaming &amp; Cache</div>
+              <div className="flex flex-col gap-2">
+                {streamingTemplates.map(({ type, label, iconStr }) => (
                   <div
                     key={`${type}-${label}`}
                     draggable

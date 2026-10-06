@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import Split from 'react-split';
-import { Code, MessageSquare, Blocks } from 'lucide-react';
+import { Code, MessageSquare, Blocks, X, ClipboardList, PenTool } from 'lucide-react';
 import { Header } from '@/components/Header';
-import { ArchitectureDesigner } from '@/components/designer';
+import { ArchitectureDesigner, SketchDesigner } from '@/components/designer';
 import { CodeEditor } from '@/components/CodeEditor';
 import { DiagramPreview } from '@/components/DiagramPreview';
 import { ExportDialog } from '@/components/ExportDialog';
@@ -13,6 +13,8 @@ import { SettingsDialog } from '@/components/SettingsDialog';
 import { GenerateMetadataDialog } from '@/components/GenerateMetadataDialog';
 import { ChatTab } from '@/components/ChatTab';
 import { PresenterMode } from '@/components/PresenterMode';
+import { SaveVersionDialog } from '@/components/SaveVersionDialog';
+import { ReviewPanel } from '@/components/ReviewPanel';
 import { useDarkMode, useLocalStorage, useKeyboardShortcut } from '@/hooks/useLocalStorage';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useDiagram, useCurrentVersion, updateDiagram } from '@/hooks/useDatabase';
@@ -35,8 +37,8 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showGenerateMetadata, setShowGenerateMetadata] = useState(false);
   
-  // Editor tab state (code, chat, or designer)
-  const [editorTab, setEditorTab] = useState<'code' | 'chat' | 'designer'>('code');
+  // Editor tab state (code, chat, designer, sketch, or review)
+  const [editorTab, setEditorTab] = useState<'code' | 'chat' | 'designer' | 'sketch' | 'review'>('code');
   
   // Diagram state
   const [activeDiagramId, setActiveDiagramId] = useLocalStorage<string | null>('mermaid-active-diagram', null);
@@ -44,6 +46,8 @@ function App() {
   const [currentSvg, setCurrentSvg] = useState('');
   const [showExport, setShowExport] = useState(false);
   const [showPresenterMode, setShowPresenterMode] = useState(false);
+  const [showSaveVersionDialog, setShowSaveVersionDialog] = useState(false);
+  const [saveGuidance, setSaveGuidance] = useState(false);
   const [currentTemplateId, setCurrentTemplateId] = useState<string | undefined>();
   
   // Load diagram data
@@ -65,7 +69,10 @@ function App() {
     if (currentVersion?.code && currentVersion.code !== code) {
       setCode(currentVersion.code);
     }
-  }, [currentVersion?.id]); // Only depend on version ID to avoid loops
+    // Only depend on version ID - including `code`/`setCode` would re-run this
+    // effect on every keystroke and fight with the editor's own state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentVersion?.id]);
   
   // Handlers
   const handleSvgGenerated = useCallback((svg: string) => {
@@ -106,15 +113,36 @@ function App() {
     setShowSidebar((prev) => !prev);
   }, []);
 
-  const handleManualSave = useCallback(async () => {
+  const handleManualSave = useCallback(() => {
     if (!activeDiagramId) {
-      alert('Please save this diagram to a customer/application first.');
+      // Guide the user to the diagrams sidebar instead of blocking with an alert
+      setShowSidebar(true);
+      setSidebarView('diagrams');
+      setSaveGuidance(true);
       return;
     }
-    
-    const label = prompt('Version label (optional):');
-    await saveNow(label || undefined);
-  }, [activeDiagramId, saveNow]);
+
+    setShowSaveVersionDialog(true);
+  }, [activeDiagramId]);
+
+  // Warn before closing/refreshing the tab while there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Auto-dismiss the save guidance banner
+  useEffect(() => {
+    if (!saveGuidance) return;
+    const timer = setTimeout(() => setSaveGuidance(false), 6000);
+    return () => clearTimeout(timer);
+  }, [saveGuidance]);
 
   const handleApplyMetadata = useCallback(async (title: string, description: string) => {
     if (!activeDiagramId) return;
@@ -150,6 +178,26 @@ function App() {
         isLLMEnabled={isLLMEnabled}
         onGenerateMetadata={() => setShowGenerateMetadata(true)}
       />
+
+      {/* Save guidance banner - shown instead of a blocking alert() */}
+      {saveGuidance && (
+        <div
+          role="status"
+          className="flex items-center justify-between gap-3 px-4 py-2 bg-primary/10 border-b border-primary/20 text-sm text-foreground shrink-0"
+        >
+          <span>
+            This diagram isn&apos;t saved to a customer/application yet. Use{' '}
+            <strong>My Diagrams → New Diagram</strong> in the sidebar to save it and enable version history.
+          </span>
+          <button
+            onClick={() => setSaveGuidance(false)}
+            className="btn btn-ghost btn-icon shrink-0"
+            aria-label="Dismiss"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
@@ -248,6 +296,28 @@ function App() {
                   <Blocks size={16} />
                   Designer
                 </button>
+                <button
+                  onClick={() => setEditorTab('sketch')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    editorTab === 'sketch'
+                      ? 'text-primary border-b-2 border-primary bg-primary/5'
+                      : 'text-foreground-muted hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <PenTool size={16} />
+                  Sketch
+                </button>
+                <button
+                  onClick={() => setEditorTab('review')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    editorTab === 'review'
+                      ? 'text-primary border-b-2 border-primary bg-primary/5'
+                      : 'text-foreground-muted hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <ClipboardList size={16} />
+                  Review
+                </button>
               </div>
               
               {/* Tab content */}
@@ -274,6 +344,18 @@ function App() {
                     onCodeChange={setCode}
                     isDark={isDark}
                   />
+                )}
+                {editorTab === 'sketch' && (
+                  <SketchDesigner
+                    onConvert={(newCode) => {
+                      setCode(newCode);
+                      setEditorTab('code');
+                    }}
+                    isDark={isDark}
+                  />
+                )}
+                {editorTab === 'review' && (
+                  <ReviewPanel diagramId={activeDiagramId} />
                 )}
               </div>
             </div>
@@ -311,6 +393,13 @@ function App() {
         onVersionSelect={(versionCode) => setCode(versionCode)}
       />
 
+      {/* Save Version Dialog - accessible replacement for prompt() */}
+      <SaveVersionDialog
+        isOpen={showSaveVersionDialog}
+        onClose={() => setShowSaveVersionDialog(false)}
+        onSave={(label) => saveNow(label)}
+      />
+
       {/* Settings Dialog */}
       <SettingsDialog
         isOpen={showSettings}
@@ -332,6 +421,7 @@ function App() {
         isOpen={showPresenterMode}
         onClose={() => setShowPresenterMode(false)}
         svg={currentSvg}
+        diagramId={activeDiagramId}
         title={activeDiagram?.name}
         description={activeDiagram?.description}
         isDark={isDark}

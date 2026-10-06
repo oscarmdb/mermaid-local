@@ -12,6 +12,14 @@ import {
   type Application, 
   type Diagram, 
   type DiagramVersion,
+  type ReviewFinding,
+  type FindingCategory,
+  type FindingSeverity,
+  type ActionItem,
+  type AnnotationStroke,
+  type AnnotationComment,
+  type RequiredCapability,
+  type CapabilityPriority,
   detectDiagramType,
   cleanupOldVersions,
 } from '@/lib/db';
@@ -53,7 +61,7 @@ export async function updateCustomer(id: string, updates: Partial<Pick<Customer,
 }
 
 export async function deleteCustomer(id: string): Promise<void> {
-  await db.transaction('rw', [db.customers, db.applications, db.diagrams, db.diagramVersions], async () => {
+  await db.transaction('rw', [db.customers, db.applications, db.diagrams, db.diagramVersions, db.reviewFindings, db.actionItems], async () => {
     // Get all applications for this customer
     const applications = await db.applications.where('customerId').equals(id).toArray();
     
@@ -64,6 +72,9 @@ export async function deleteCustomer(id: string): Promise<void> {
       for (const diagram of diagrams) {
         // Delete all versions for this diagram
         await db.diagramVersions.where('diagramId').equals(diagram.id).delete();
+        // Delete all review findings and action items for this diagram
+        await db.reviewFindings.where('diagramId').equals(diagram.id).delete();
+        await db.actionItems.where('diagramId').equals(diagram.id).delete();
       }
       
       // Delete all diagrams for this application
@@ -129,13 +140,16 @@ export async function updateApplication(id: string, updates: Partial<Pick<Applic
 }
 
 export async function deleteApplication(id: string): Promise<void> {
-  await db.transaction('rw', [db.applications, db.diagrams, db.diagramVersions], async () => {
+  await db.transaction('rw', [db.applications, db.diagrams, db.diagramVersions, db.reviewFindings, db.actionItems], async () => {
     // Get all diagrams for this application
     const diagrams = await db.diagrams.where('applicationId').equals(id).toArray();
     
     for (const diagram of diagrams) {
       // Delete all versions for this diagram
       await db.diagramVersions.where('diagramId').equals(diagram.id).delete();
+      // Delete all review findings and action items for this diagram
+      await db.reviewFindings.where('diagramId').equals(diagram.id).delete();
+      await db.actionItems.where('diagramId').equals(diagram.id).delete();
     }
     
     // Delete all diagrams for this application
@@ -226,8 +240,10 @@ export async function updateDiagram(id: string, updates: Partial<Pick<Diagram, '
 }
 
 export async function deleteDiagram(id: string): Promise<void> {
-  await db.transaction('rw', [db.diagrams, db.diagramVersions], async () => {
+  await db.transaction('rw', [db.diagrams, db.diagramVersions, db.reviewFindings, db.actionItems], async () => {
     await db.diagramVersions.where('diagramId').equals(id).delete();
+    await db.reviewFindings.where('diagramId').equals(id).delete();
+    await db.actionItems.where('diagramId').equals(id).delete();
     await db.diagrams.delete(id);
   });
 }
@@ -304,6 +320,249 @@ export async function rollbackToVersion(diagramId: string, versionId: string): P
   
   // Create a new version with the old code (so history is preserved)
   await createVersion(diagramId, version.code, false, `Rollback to ${formatRelativeTime(version.createdAt)}`);
+}
+
+// ============================================
+// Review Finding Hooks
+// ============================================
+
+export function useFindings(diagramId: string | null): ReviewFinding[] {
+  const findings = useLiveQuery(
+    () => diagramId
+      ? db.reviewFindings.where('diagramId').equals(diagramId).reverse().sortBy('createdAt')
+      : Promise.resolve([] as ReviewFinding[]),
+    [diagramId]
+  );
+
+  return findings ?? [];
+}
+
+export async function createFinding(
+  diagramId: string,
+  data: { category: FindingCategory; severity: FindingSeverity; title: string; notes?: string }
+): Promise<ReviewFinding> {
+  const now = new Date();
+  const finding: ReviewFinding = {
+    id: uuidv4(),
+    diagramId,
+    category: data.category,
+    severity: data.severity,
+    status: 'open',
+    title: data.title,
+    notes: data.notes,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await db.reviewFindings.add(finding);
+  return finding;
+}
+
+export async function updateFinding(
+  id: string,
+  updates: Partial<Pick<ReviewFinding, 'category' | 'severity' | 'status' | 'title' | 'notes'>>
+): Promise<void> {
+  await db.reviewFindings.update(id, {
+    ...updates,
+    updatedAt: new Date(),
+  });
+}
+
+export async function deleteFinding(id: string): Promise<void> {
+  await db.reviewFindings.delete(id);
+}
+
+// ============================================
+// Action Item Hooks
+// ============================================
+
+export function useActionItems(diagramId: string | null): ActionItem[] {
+  const items = useLiveQuery(
+    () => diagramId
+      ? db.actionItems.where('diagramId').equals(diagramId).reverse().sortBy('createdAt')
+      : Promise.resolve([] as ActionItem[]),
+    [diagramId]
+  );
+
+  return items ?? [];
+}
+
+export async function createActionItem(
+  diagramId: string,
+  data: { description: string; owner?: string; dueDate?: Date }
+): Promise<ActionItem> {
+  const now = new Date();
+  const item: ActionItem = {
+    id: uuidv4(),
+    diagramId,
+    description: data.description,
+    owner: data.owner,
+    dueDate: data.dueDate,
+    status: 'open',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await db.actionItems.add(item);
+  return item;
+}
+
+export async function updateActionItem(
+  id: string,
+  updates: Partial<Pick<ActionItem, 'description' | 'owner' | 'dueDate' | 'status'>>
+): Promise<void> {
+  await db.actionItems.update(id, {
+    ...updates,
+    updatedAt: new Date(),
+  });
+}
+
+export async function deleteActionItem(id: string): Promise<void> {
+  await db.actionItems.delete(id);
+}
+
+export function isActionItemOverdue(item: ActionItem): boolean {
+  return !!item.dueDate && item.status !== 'done' && item.dueDate.getTime() < Date.now();
+}
+
+// ============================================
+// Annotation Hooks (pen strokes & comment pins)
+// ============================================
+
+export function useAnnotationStrokes(diagramId: string | null): AnnotationStroke[] {
+  const strokes = useLiveQuery(
+    () => diagramId
+      ? db.annotationStrokes.where('diagramId').equals(diagramId).sortBy('createdAt')
+      : Promise.resolve([] as AnnotationStroke[]),
+    [diagramId]
+  );
+
+  return strokes ?? [];
+}
+
+export async function createAnnotationStroke(
+  diagramId: string,
+  data: { color: string; size: number; points: { x: number; y: number }[] }
+): Promise<AnnotationStroke> {
+  const stroke: AnnotationStroke = {
+    id: uuidv4(),
+    diagramId,
+    color: data.color,
+    size: data.size,
+    points: data.points,
+    createdAt: new Date(),
+  };
+
+  await db.annotationStrokes.add(stroke);
+  return stroke;
+}
+
+export async function deleteAnnotationStroke(id: string): Promise<void> {
+  await db.annotationStrokes.delete(id);
+}
+
+export async function deleteLastAnnotationStroke(diagramId: string): Promise<void> {
+  const strokes = await db.annotationStrokes.where('diagramId').equals(diagramId).sortBy('createdAt');
+  const last = strokes[strokes.length - 1];
+  if (last) await db.annotationStrokes.delete(last.id);
+}
+
+export async function clearAnnotations(diagramId: string): Promise<void> {
+  await db.annotationStrokes.where('diagramId').equals(diagramId).delete();
+  await db.annotationComments.where('diagramId').equals(diagramId).delete();
+}
+
+export function useAnnotationComments(diagramId: string | null): AnnotationComment[] {
+  const comments = useLiveQuery(
+    () => diagramId
+      ? db.annotationComments.where('diagramId').equals(diagramId).sortBy('createdAt')
+      : Promise.resolve([] as AnnotationComment[]),
+    [diagramId]
+  );
+
+  return comments ?? [];
+}
+
+export async function createAnnotationComment(
+  diagramId: string,
+  data: { x: number; y: number; text: string }
+): Promise<AnnotationComment> {
+  const now = new Date();
+  const comment: AnnotationComment = {
+    id: uuidv4(),
+    diagramId,
+    x: data.x,
+    y: data.y,
+    text: data.text,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await db.annotationComments.add(comment);
+  return comment;
+}
+
+export async function updateAnnotationComment(
+  id: string,
+  updates: Partial<Pick<AnnotationComment, 'x' | 'y' | 'text'>>
+): Promise<void> {
+  await db.annotationComments.update(id, {
+    ...updates,
+    updatedAt: new Date(),
+  });
+}
+
+export async function deleteAnnotationComment(id: string): Promise<void> {
+  await db.annotationComments.delete(id);
+}
+
+// ============================================
+// Required Capability Hooks
+// ============================================
+
+export function useCapabilities(diagramId: string | null): RequiredCapability[] {
+  const capabilities = useLiveQuery(
+    () => diagramId
+      ? db.capabilities.where('diagramId').equals(diagramId).sortBy('createdAt')
+      : Promise.resolve([] as RequiredCapability[]),
+    [diagramId]
+  );
+
+  return capabilities ?? [];
+}
+
+export async function createCapability(
+  diagramId: string,
+  data: { name: string; notes?: string; priority: CapabilityPriority }
+): Promise<RequiredCapability> {
+  const now = new Date();
+  const capability: RequiredCapability = {
+    id: uuidv4(),
+    diagramId,
+    name: data.name,
+    notes: data.notes,
+    priority: data.priority,
+    status: 'identified',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await db.capabilities.add(capability);
+  return capability;
+}
+
+export async function updateCapability(
+  id: string,
+  updates: Partial<Pick<RequiredCapability, 'name' | 'notes' | 'priority' | 'status'>>
+): Promise<void> {
+  await db.capabilities.update(id, {
+    ...updates,
+    updatedAt: new Date(),
+  });
+}
+
+export async function deleteCapability(id: string): Promise<void> {
+  await db.capabilities.delete(id);
 }
 
 // ============================================

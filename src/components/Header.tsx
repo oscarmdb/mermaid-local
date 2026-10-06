@@ -77,7 +77,7 @@ export function Header({
         )}
         
         {/* Save status indicator */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" role="status" aria-live="polite" aria-atomic="true">
           {saveStatus === 'saving' && (
             <>
               <Loader2 size={14} className="text-primary animate-spin" />

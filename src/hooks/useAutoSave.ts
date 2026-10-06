@@ -1,8 +1,11 @@
 /**
  * Auto-Save Hook
  * 
- * Provides intelligent auto-save functionality with debouncing
- * and minimum change threshold detection.
+ * Provides intelligent auto-save functionality with debouncing.
+ * Any change (even a single character) is saved once typing pauses -
+ * small edits can be semantically significant in Mermaid syntax
+ * (e.g. a single node ID or arrow direction), so they must never be
+ * silently dropped.
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
@@ -10,7 +13,6 @@ import { createVersion } from '@/hooks/useDatabase';
 
 // Auto-save configuration
 const AUTO_SAVE_DEBOUNCE_MS = 1500; // Wait 1.5s after typing stops
-const MIN_CHANGE_THRESHOLD = 5;     // Minimum characters changed to trigger save
 
 export type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
 
@@ -53,33 +55,14 @@ export function useAutoSave({
     };
   }, []);
   
-  // Calculate if code has changed enough to warrant a save
-  const hasSignificantChange = useCallback((newCode: string, oldCode: string): boolean => {
-    if (newCode === oldCode) return false;
-    
-    const lengthDiff = Math.abs(newCode.length - oldCode.length);
-    if (lengthDiff >= MIN_CHANGE_THRESHOLD) return true;
-    
-    // Count character differences (simple diff)
-    let differences = 0;
-    const maxLen = Math.max(newCode.length, oldCode.length);
-    for (let i = 0; i < maxLen && differences < MIN_CHANGE_THRESHOLD; i++) {
-      if (newCode[i] !== oldCode[i]) {
-        differences++;
-      }
-    }
-    
-    return differences >= MIN_CHANGE_THRESHOLD;
-  }, []);
-  
   // Perform the actual save
   const performSave = useCallback(async (isAutoSave: boolean, label?: string) => {
     if (!diagramId || !isMountedRef.current) return;
     
     const codeToSave = code;
     
-    // Don't save if no significant changes (unless it's a manual save with label)
-    if (isAutoSave && !hasSignificantChange(codeToSave, lastSavedCodeRef.current)) {
+    // Don't save if nothing changed at all (unless it's a manual save with label)
+    if (isAutoSave && codeToSave === lastSavedCodeRef.current) {
       setSaveStatus('saved');
       setHasUnsavedChanges(false);
       return;
@@ -110,7 +93,7 @@ export function useAutoSave({
         onError?.(error instanceof Error ? error : new Error('Save failed'));
       }
     }
-  }, [diagramId, code, hasSignificantChange, onSaveComplete, onError]);
+  }, [diagramId, code, onSaveComplete, onError]);
   
   // Manual save function
   const saveNow = useCallback(async (label?: string) => {
@@ -158,7 +141,10 @@ export function useAutoSave({
       setHasUnsavedChanges(false);
       setSaveStatus('idle');
     }
-  }, [diagramId]); // Only reset when diagram ID changes, not code
+    // Only reset when diagram ID changes, not on every `code` change - this
+    // effect exists purely to re-baseline state when switching diagrams.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diagramId]);
   
   // Mark code as already saved (used when AI creates a version directly)
   const markAsSaved = useCallback((savedCode: string) => {
